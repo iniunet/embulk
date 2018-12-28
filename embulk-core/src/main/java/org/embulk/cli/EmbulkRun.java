@@ -23,6 +23,8 @@ import org.embulk.cli.parse.EmbulkCommandLineParseException;
 import org.embulk.cli.parse.EmbulkCommandLineParser;
 import org.embulk.cli.parse.OptionBehavior;
 import org.embulk.cli.parse.OptionDefinition;
+import org.embulk.deps.EmbulkDependencyClassLoaders;
+import org.embulk.deps.EmbulkSelfContainedJarFiles;
 import org.embulk.jruby.ScriptingContainerDelegate;
 import org.embulk.jruby.ScriptingContainerDelegateImpl;
 
@@ -92,6 +94,15 @@ public class EmbulkRun {
                 CliLogbackConfigurator.configure(
                         Optional.ofNullable(commandLine.getLogPath()),
                         Optional.ofNullable(commandLine.getLogLevel()));
+
+                // TODO: Initialize self-contained JAR files and dependency class loaders earlier.
+                //
+                // They are now initialized here so that they can use SLF4J Logger after Logback is initialized.
+                // SLF4J Logger should be initialized earlier by parsing --log-level and --log-path options earlier.
+
+                EmbulkSelfContainedJarFiles.staticInitializer().addFromManifest(CliManifest.getManifest()).initialize();
+                EmbulkDependencyClassLoaders.staticInitializer().useSelfContainedJarFiles().initialize();
+
                 return runSubcommand(subcommand, subcommandArguments, commandLine, jrubyOptions);
         }
     }
